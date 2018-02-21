@@ -1,0 +1,124 @@
+---
+title: "DiB 02/18 Same Sex Marriage"
+author: "Calum You"
+date: "20th February, 2018"
+output:
+  html_notebook:
+    highlight: tango
+    mathjax: null
+    number_sections: yes
+    theme: spacelab
+    toc: yes
+    toc_float: yes
+---
+
+# Setup
+```{r setup}
+library(tidyverse)
+library(sf)
+library(fiftystater)
+library(gganimate)
+```
+
+# Load
+```{r load}
+ssm <- read_csv(here::here("feb_2018", "ssm.csv"))
+```
+
+# Tidy
+```{r tify}
+plot <- ssm %>%
+  gather("year", "status", -State, - abbrev) %>%
+  rename(state = State) %>%
+  mutate(
+    status = factor(status),
+    status = fct_relevel(
+      .f = status,
+      c("Legal", "Statutory Ban", "No Law", "Constitutional Ban")
+    )
+  ) %>%
+  group_by(state, status) %>%
+  mutate(
+    year = as.integer(year),
+    first_year = min(year)
+    ) %>%
+  ungroup() %>%
+  mutate(first = str_to_lower(status)) %>%
+  spread(first, first_year, sep = "_") %>%
+  rename(
+    first_stat = `first_statutory ban`,
+    first_const = `first_constitutional ban`,
+    first_none = `first_no law`
+  ) %>%
+  group_by(state) %>%
+  mutate_at(
+    .vars = vars(starts_with("first_")),
+    .funs = ~ ifelse(is.na(.), mean(., na.rm = TRUE), .)
+  ) %>%
+  ungroup() %>%
+  mutate_at(
+    .vars = vars(starts_with("first_")),
+    .funs = ~ replace_na(., 0)
+  ) %>%
+  mutate(
+    state = factor(state)
+  )
+# plot$state <- fct_reorder(plot$state, plot$first_none, min)
+# plot$state <- fct_reorder(plot$state, plot$first_stat, min)
+# plot$state <- fct_reorder(plot$state, plot$first_const, min)
+plot$state <- fct_reorder(plot$state, plot$first_legal, min, .desc = TRUE)
+```
+
+# Bar Plot
+```{r plot, fig.width = 11, fig.height = 8}
+ggplot(plot) +
+  geom_tile(aes(x = year, y = state, fill = status)) +
+  scale_fill_brewer(type = "qual", palette = "Set3") +
+  scale_x_continuous(breaks = 1995:2015, expand = c(0, 0)) +
+  scale_y_discrete(expand = c(0, 0)) +
+  theme_bw() +
+  labs(
+    x = "Year",
+    y = "State",
+    title = "Legal status of same-sex marriage by state",
+    subtitle = "Ordered by first year of legality",
+    fill = "Legal Status"
+  )
+```
+
+```{r maptidy}
+df <- ssm %>%
+  gather("year", "status", -State, - abbrev) %>%
+  rename(state = State) %>%
+  mutate(
+    state = str_to_lower(state),
+    status = factor(status),
+    status = fct_relevel(
+      .f = status,
+      c("Legal", "Statutory Ban", "No Law", "Constitutional Ban")
+    ),
+    year = as.integer(year),
+    status_id = as.integer(status)
+  )
+data("fifty_states")
+```
+
+```{r mapplot}
+p <- ggplot(df, aes(map_id = state, frame = year)) +
+  geom_map(aes(fill = status), map = fifty_states) +
+  expand_limits(x = fifty_states$long, y = fifty_states$lat) +
+  coord_map() +
+  scale_x_continuous(breaks = NULL) + 
+  scale_y_continuous(breaks = NULL) +
+  scale_fill_brewer(type = "qual", palette = "Set3") +
+  labs(
+    x = "",
+    y = "",
+    title = "Legal status of same-sex marriage by state over time",
+    fill = "Legal Status"
+    ) +
+  theme(
+    legend.position = "bottom",
+    panel.background = element_blank())
+```
+
