@@ -120,5 +120,6 @@ p <- ggplot(df, aes(map_id = state, frame = year)) +
   theme(
     legend.position = "bottom",
     panel.background = element_blank())
+
 ```
 
