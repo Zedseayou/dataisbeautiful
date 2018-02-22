@@ -17,7 +17,6 @@ output:
 library(tidyverse)
 library(sf)
 library(fiftystater)
-library(gganimate)
 ```
 
 # Load
@@ -104,22 +103,69 @@ data("fifty_states")
 ```
 
 ```{r mapplot}
-p <- ggplot(df, aes(map_id = state, frame = year)) +
-  geom_map(aes(fill = status), map = fifty_states) +
-  expand_limits(x = fifty_states$long, y = fifty_states$lat) +
-  coord_map() +
-  scale_x_continuous(breaks = NULL) + 
-  scale_y_continuous(breaks = NULL) +
-  scale_fill_brewer(type = "qual", palette = "Set3") +
-  labs(
-    x = "",
-    y = "",
-    title = "Legal status of same-sex marriage by state over time",
-    fill = "Legal Status"
+for (yr in 1995:2015){
+  p <- ggplot(
+    data = filter(df, year == yr),
+    mapping = aes(map_id = state)
+  ) +
+    geom_map(aes(fill = status), map = fifty_states) +
+    expand_limits(x = fifty_states$long, y = fifty_states$lat) +
+    coord_map() +
+    scale_x_continuous(breaks = NULL) + 
+    scale_y_continuous(breaks = NULL) +
+    scale_fill_brewer(
+      type = "qual",
+      palette = "Set3",
+      limits = levels(df$status)
     ) +
-  theme(
-    legend.position = "bottom",
-    panel.background = element_blank())
+    labs(
+      x = "",
+      y = "",
+      title = str_c("Legal status of same-sex marriage by state in ", yr),
+      fill = "Legal Status"
+    ) +
+    theme(
+      legend.position = "bottom",
+      panel.background = element_blank(),
+      plot.title = element_text(hjust = 0.5, size = 22)
+      )
+  ggsave(
+    filename = str_c(yr, "map.png"),
+    plot = p,
+    device = "png",
+    path = here::here("feb_2018", "plots"),
+    width = 11,
+    height = 8,
+    units = "in"
+  )
+}
+```
 
+```{r}
+ggplot(
+    data = filter(df, year == 2010),
+    mapping = aes(map_id = state)
+  ) +
+    geom_map(aes(fill = status), map = fifty_states) +
+    expand_limits(x = fifty_states$long, y = fifty_states$lat) +
+    coord_map() +
+    # scale_x_continuous(breaks = NULL) + 
+    # scale_y_continuous(breaks = NULL) +
+    scale_fill_brewer(
+      type = "qual",
+      palette = "Set3",
+      limits = levels(df$status)
+    ) +
+    labs(
+      x = "",
+      y = "",
+      title = str_c("Legal status of same-sex marriage by state in ", 2010),
+      fill = "Legal Status"
+    ) +
+    theme(
+      legend.position = "bottom",
+      panel.background = element_blank(),
+      plot.title = element_text(hjust = 0.5, size = 22)
+    )
 ```
 
